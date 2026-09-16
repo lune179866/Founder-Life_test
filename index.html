@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>測試你的創業人生 — Founder Life Quiz</title>
+  <meta name="description" content="探索你的靈魂創業人物！12 道日常情境題，找出你的創業 DNA。" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans TC', sans-serif; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-12px) rotate(3deg); }
+    }
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); opacity: 0.6; }
+      50% { transform: scale(1.15); opacity: 0.9; }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(60px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideOutLeft {
+      from { opacity: 1; transform: translateX(0); }
+      to { opacity: 0; transform: translateX(-60px); }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes bounceIn {
+      0% { opacity: 0; transform: scale(0.3); }
+      50% { opacity: 1; transform: scale(1.05); }
+      70% { transform: scale(0.95); }
+      100% { transform: scale(1); }
+    }
+
+    .animate-float { animation: float 3s ease-in-out infinite; }
+    .animate-float-delay-1 { animation: float 3.5s ease-in-out 0.5s infinite; }
+    .animate-float-delay-2 { animation: float 4s ease-in-out 1s infinite; }
+    .animate-float-delay-3 { animation: float 3.2s ease-in-out 1.5s infinite; }
+    .animate-breathe { animation: breathe 3s ease-in-out infinite; }
+    .animate-fadeInUp { animation: fadeInUp 0.6s ease-out both; }
+    .animate-slideInRight { animation: slideInRight 0.4s ease-out both; }
+    .animate-slideOutLeft { animation: slideOutLeft 0.3s ease-out both; }
+    .animate-pulse-soft { animation: pulse 2s ease-in-out infinite; }
+    .animate-bounceIn { animation: bounceIn 0.8s ease-out both; }
+
+    .shimmer-bg {
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+      background-size: 200% 100%;
+      animation: shimmer 2s infinite;
+    }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .glass-strong {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+    }
+
+    .progress-bar-fill {
+      background: linear-gradient(90deg, #fb923c, #f59e0b, #fb923c);
+      background-size: 200% 100%;
+      animation: shimmer 2s infinite;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .option-btn {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .option-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(251, 146, 60, 0.25);
+    }
+    .option-btn:active {
+      transform: scale(0.98);
+    }
+
+    .hero-glow {
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(251, 146, 60, 0.3) 0%, transparent 70%);
+      filter: blur(30px);
+      z-index: 0;
+    }
+
+    .result-glow {
+      position: absolute;
+      width: 250px;
+      height: 250px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(251, 146, 60, 0.25) 0%, transparent 70%);
+      filter: blur(40px);
+      z-index: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useCallback } = React;
+
+    /* ============================================================
+       DATA: 8 種創業人格
+       計分邏輯: E/I(4題) + T/F(4題) + J/P(4題) → 取多數
+       ETJ=行動派老闆, ETP=風格創業家, EFJ=熟客經營家, EFP=話題製造機
+       ITJ=精算投資家, ITP=社區觀察家, IFJ=深夜守護者, IFP=創新玩家
+    ============================================================ */
+    const PERSONAS = {
+      ETJ: {
+        name: '行動派老闆',
+        emoji: '🦁',
+        image: '行動派老闆.png',
+        tags: ['果斷執行', '效率至上', '目標導向'],
+        strength: '你天生就是指揮官。面對任何挑戰，你的第一反應就是拆解問題、分配任務、立刻行動。你不怕做決定，更不怕承擔後果——因為你知道「不做」才是最大的風險。',
+        social: '你是朋友圈裡的「行動中心」，聚會你來訂餐廳、旅行你來排行程。大家習慣跟著你走，因為跟著你總能把事情搞定。偶爾別人會覺得你太強勢，但他們心裡都知道，少了你真的不行。',
+      },
+      ETP: {
+        name: '風格創業家',
+        emoji: '🦊',
+        image: '風格創業家.png',
+        tags: ['靈活應變', '創意無限', '勇於嘗試'],
+        strength: '你是天生的冒險家與創意人。規則對你來說只是參考，你更相信「試了才知道」。你能在混亂中找到機會，在別人看到風險的地方看到可能性。即興發揮是你的超能力。',
+        social: '你是社交場合的催化劑，總能帶起話題、炒熱氣氛。你的朋友來自各種圈子，因為你對什麼都好奇。唯一的問題是，你有時候答應太多事情，行事曆永遠爆炸。',
+      },
+      EFJ: {
+        name: '熟客經營家',
+        emoji: '🐕',
+        image: '熟客經營家.png',
+        tags: ['人脈經營', '溫暖可靠', '計畫周全'],
+        strength: '你最厲害的地方是「讓人離不開你」。你記得每個客人的喜好、每個朋友的生日。你做事有條有理，但不是冷冰冰的流程，而是帶著溫度的體貼。這讓你在任何團隊裡都是不可取代的存在。',
+        social: '你是朋友圈的「情感中樞」。誰跟誰吵架了找你調解，誰心情不好了找你聊聊。你樂在其中，因為幫助別人讓你充滿能量。但記得也要留點時間給自己充電。',
+      },
+      EFP: {
+        name: '話題製造機',
+        emoji: '🦜',
+        image: '話題製造機.png',
+        tags: ['感染力強', '隨機應變', '熱情洋溢'],
+        strength: '你的存在本身就是一個磁場。你說的話、做的事，總能引起別人的注意和共鳴。你不需要刻意經營，光是做自己就能吸引一群追隨者。你的直覺很準，能感受到趨勢和人心的微妙變化。',
+        social: '你是每場聚會的靈魂人物。沒有你的派對不叫派對，沒有你的群組不夠有趣。你天生懂得讀空氣、帶氣氛，但有時候也需要學會在喧鬧中找到安靜的角落，聽聽自己內心的聲音。',
+      },
+      ITJ: {
+        name: '精算投資家',
+        emoji: '🦉',
+        image: '精算投資家.png',
+        tags: ['深思熟慮', '數據驅動', '長線佈局'],
+        strength: '你的大腦就是一台精密的分析機器。在別人還在感覺的時候，你已經用數據和邏輯得出結論。你不追求快，追求「對」。你的每一步棋都是算過的，長遠來看，你通常是笑到最後的那個人。',
+        social: '你不是社交場合的焦點，但你是最被信任的那個人。朋友遇到重大決定會來問你意見，因為他們知道你會給出最客觀、最有建設性的分析。你的朋友不多，但每一個都是精挑細選的。',
+      },
+      ITP: {
+        name: '社區觀察家',
+        emoji: '🐱',
+        image: '社區觀察家.png',
+        tags: ['洞察敏銳', '獨立思考', '技術導向'],
+        strength: '你是那種「默默觀察，然後一語道破」的人。你不需要站在台前，但你總能看到別人看不到的細節和本質。你喜歡用自己的方式解決問題，不走常規路線，往往能找到最巧妙的解法。',
+        social: '你偏好一對一的深度對話，而不是一群人的寒暄。你在小圈子裡是公認的「智囊」，大家遇到技術難題或需要獨特觀點時第一個想到你。你享受獨處，但也珍惜那些懂你的少數人。',
+      },
+      IFJ: {
+        name: '深夜守護者',
+        emoji: '🐺',
+        image: '深夜守護者.png',
+        tags: ['使命感強', '溫柔堅定', '理想主義'],
+        strength: '你做事不是為了錢或名，而是為了一個你相信的「意義」。你有很強的同理心，能感受到別人的需求，然後默默地用行動去回應。你的計畫性很強，但驅動你前進的，是內心那團不滅的火。',
+        social: '你是那個「凌晨三點還在回訊息安慰朋友」的人。你不主動社交，但你在乎的人都能感受到你深沉的關懷。你的忠誠度極高，一旦認定了就全力以赴。但別忘了，你也值得被守護。',
+      },
+      IFP: {
+        name: '創新玩家',
+        emoji: '🦄',
+        image: '創新玩家.png',
+        tags: ['天馬行空', '真誠獨特', '感受力強'],
+        strength: '你活在自己的宇宙裡，而那個宇宙充滿了色彩和可能性。你不在乎世界怎麼定義成功，你在乎的是「這件事有沒有讓我感到興奮」。你的創造力是天生的，你能把平凡的事物變得不平凡。',
+        social: '你不太在乎社交的「數量」，但你在乎「品質」。你的朋友都是跟你一樣有點怪、有點酷的人。你們之間有一種無需言語的默契。你在人群中可能看起來安靜，但熟悉你的人都知道，你的內心世界比任何人都精彩。',
+      },
+    };
+
+    /* ============================================================
+       12 QUESTIONS
+       Q1-Q4: E/I dimension
+       Q5-Q8: T/F dimension
+       Q9-Q12: J/P dimension
+    ============================================================ */
+    const QUESTIONS = [
+      // === E/I 題組 (Q1-Q4) ===
+      {
+        id: 1,
+        dimension: 'EI',
+        emoji: '🏪',
+        question: '走進便利商店，你的第一反應是？',
+        options: [
+          { text: '跟熟識的店員打招呼，順便看有沒有新奇的東西', value: 'E' },
+          { text: '默默走向常逛的商品區，挑選完迅速結帳', value: 'I' },
+        ],
+      },
+      {
+        id: 2,
+        dimension: 'EI',
+        emoji: '🎉',
+        question: '朋友突然揪你週末去一個你沒去過的市集，你的反應是？',
+        options: [
+          { text: '太好了！馬上答應，還問能不能多揪幾個人', value: 'E' },
+          { text: '先看看活動內容跟人數，確認自己有足夠的能量再決定', value: 'I' },
+        ],
+      },
+      {
+        id: 3,
+        dimension: 'EI',
+        emoji: '💬',
+        question: '工作群組裡有人拋出一個新點子，你會？',
+        options: [
+          { text: '立刻跳出來回應，分享自己的想法和延伸', value: 'E' },
+          { text: '先在心裡想清楚，等到有完整的觀點再發言', value: 'I' },
+        ],
+      },
+      {
+        id: 4,
+        dimension: 'EI',
+        emoji: '🔋',
+        question: '忙碌了一整天，你最想要的充電方式是？',
+        options: [
+          { text: '約朋友出門吃飯聊天，越聊越有精神', value: 'E' },
+          { text: '一個人窩在家裡追劇或看書，享受安靜', value: 'I' },
+        ],
+      },
+      // === T/F 題組 (Q5-Q8) ===
+      {
+        id: 5,
+        dimension: 'TF',
+        emoji: '⏰',
+        question: '前面結帳排了很長的隊伍，前面的人在跟店員聊天，你會？',
+        options: [
+          { text: '冷靜評估：算一下大概要等多久，考慮換隊或自助結帳', value: 'T' },
+          { text: '觀察那個人是不是在分享開心的事，雖然急但覺得蠻溫馨的', value: 'F' },
+        ],
+      },
+      {
+        id: 6,
+        dimension: 'TF',
+        emoji: '🤝',
+        question: '團隊裡兩個夥伴因為方案方向意見不合，你會怎麼處理？',
+        options: [
+          { text: '把兩個方案的優缺點列出來做比較，用數據和事實來決定', value: 'T' },
+          { text: '先分別聽聽兩邊的想法和感受，找到雙方都能接受的折衷方案', value: 'F' },
+        ],
+      },
+      {
+        id: 7,
+        dimension: 'TF',
+        emoji: '📊',
+        question: '你要決定店裡要不要引進一款新商品，你的判斷依據是？',
+        options: [
+          { text: '看數據：市場趨勢、毛利率、競品分析，數字說了算', value: 'T' },
+          { text: '看感覺：這商品的故事能不能打動我？客人看到會不會開心？', value: 'F' },
+        ],
+      },
+      {
+        id: 8,
+        dimension: 'TF',
+        emoji: '😢',
+        question: '一個朋友跟你說他最近壓力很大，你第一反應是？',
+        options: [
+          { text: '幫他分析壓力來源，提供具體的解決方案和建議', value: 'T' },
+          { text: '先不說什麼，讓他好好講完，然後告訴他你懂他的感受', value: 'F' },
+        ],
+      },
+      // === J/P 題組 (Q9-Q12) ===
+      {
+        id: 9,
+        dimension: 'JP',
+        emoji: '📋',
+        question: '明天有一個重要提案要報告，今天晚上你會？',
+        options: [
+          { text: '按照計畫把簡報做完、排練一遍，然後準時上床睡覺', value: 'J' },
+          { text: '先看看狀況，靈感來了就做，說不定洗澡時會想到更好的切入點', value: 'P' },
+        ],
+      },
+      {
+        id: 10,
+        dimension: 'JP',
+        emoji: '🧳',
+        question: '規劃一趟三天兩夜的旅行，你的風格是？',
+        options: [
+          { text: '出發前就把行程、餐廳、交通全部排好，最好精確到小時', value: 'J' },
+          { text: '訂好住宿就出發，到了當地再看心情決定，驚喜才是旅行的意義', value: 'P' },
+        ],
+      },
+      {
+        id: 11,
+        dimension: 'JP',
+        emoji: '🗂️',
+        question: '你的手機桌面和電腦桌面是什麼狀態？',
+        options: [
+          { text: 'App 分類好了資料夾，桌面乾乾淨淨，通知也都有整理', value: 'J' },
+          { text: '常用的都丟在首頁，桌面有點亂但我知道東西在哪就好', value: 'P' },
+        ],
+      },
+      {
+        id: 12,
+        dimension: 'JP',
+        emoji: '🎯',
+        question: '面對一個大專案，你傾向哪種工作方式？',
+        options: [
+          { text: '先擬好完整計畫和時間表，然後按部就班地執行', value: 'J' },
+          { text: '先動手做做看，邊做邊調整方向，保持彈性最重要', value: 'P' },
+        ],
+      },
+    ];
+
+    /* ============================================================
+       MAIN COMPONENT
+    ============================================================ */
+    function FounderLifeQuiz() {
+      const [stage, setStage] = useState('start'); // start | quiz | result
+      const [step, setStep] = useState(0);
+      const [scores, setScores] = useState({ E: 0, I: 0, T: 0, F: 0, J: 0, P: 0 });
+      const [transitioning, setTransitioning] = useState(false);
+      const [slideDirection, setSlideDirection] = useState('in');
+      const [copied, setCopied] = useState(false);
+      const [resultKey, setResultKey] = useState(null);
+
+      const resetQuiz = useCallback(() => {
+        setStage('start');
+        setStep(0);
+        setScores({ E: 0, I: 0, T: 0, F: 0, J: 0, P: 0 });
+        setTransitioning(false);
+        setSlideDirection('in');
+        setCopied(false);
+        setResultKey(null);
+      }, []);
+
+      const computeResult = useCallback((finalScores) => {
+        const ei = finalScores.E >= finalScores.I ? 'E' : 'I';
+        const tf = finalScores.T >= finalScores.F ? 'T' : 'F';
+        const jp = finalScores.J >= finalScores.P ? 'J' : 'P';
+        return ei + tf + jp;
+      }, []);
+
+      const handleOptionClick = useCallback((value) => {
+        if (transitioning) return;
+        setTransitioning(true);
+        setSlideDirection('out');
+
+        const newScores = { ...scores, [value]: scores[value] + 1 };
+        setScores(newScores);
+
+        setTimeout(() => {
+          if (step < QUESTIONS.length - 1) {
+            setStep(step + 1);
+            setSlideDirection('in');
+            setTimeout(() => setTransitioning(false), 400);
+          } else {
+            const key = computeResult(newScores);
+            setResultKey(key);
+            setStage('result');
+            setTransitioning(false);
+          }
+        }, 300);
+      }, [transitioning, scores, step, computeResult]);
+
+      const handleShare = useCallback(async () => {
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } catch {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }
+      }, []);
+
+      const progress = ((step + 1) / QUESTIONS.length) * 100;
+
+      // ==================== START PAGE ====================
+      if (stage === 'start') {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 flex items-center justify-center p-4">
+            <div className="w-full max-w-md">
+              <div className="glass-strong rounded-3xl shadow-xl shadow-orange-200/50 p-8 text-center relative overflow-hidden">
+                {/* Decorative floating emojis */}
+                <div className="absolute top-4 left-4 text-2xl animate-float opacity-60">💼</div>
+                <div className="absolute top-8 right-6 text-xl animate-float-delay-1 opacity-60">📈</div>
+                <div className="absolute bottom-16 left-6 text-xl animate-float-delay-2 opacity-60">💡</div>
+                <div className="absolute bottom-20 right-4 text-2xl animate-float-delay-3 opacity-60">🚀</div>
+
+                {/* Logo */}
+                <div className="mb-4 animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
+                  <img 
+                    src="LOGO.png" 
+                    alt="Pocket Store Logo" 
+                    className="w-36 h-auto mx-auto drop-shadow-lg"
+                  />
+                </div>
+
+                {/* Hero character */}
+                <div className="relative inline-block mb-6 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+                  <div className="hero-glow animate-breathe" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}></div>
+                  <img 
+                    src="主頁_黑墨鏡.png" 
+                    alt="Boss Character" 
+                    className="w-48 h-48 object-contain relative z-10 animate-float drop-shadow-2xl"
+                  />
+                </div>
+
+                {/* Title */}
+                <h1 className="text-3xl font-black text-stone-800 mb-2 animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
+                  探索你的靈魂創業人物
+                </h1>
+                <p className="text-stone-500 mb-2 animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
+                  12 道日常情境題，找出你的創業 DNA 🧬
+                </p>
+                <p className="text-sm text-stone-400 mb-8 animate-fadeInUp" style={{ animationDelay: '0.45s' }}>
+                  走進便利商店的那一刻，你的創業人格就已經藏不住了
+                </p>
+
+                {/* Preview character emojis */}
+                <div className="flex justify-center gap-3 mb-8 animate-fadeInUp" style={{ animationDelay: '0.5s' }}>
+                  {['🦁', '🦊', '🐕', '🦜', '🦉', '🐱', '🐺', '🦄'].map((e, i) => (
+                    <span 
+                      key={i} 
+                      className="text-2xl"
+                      style={{ animation: `float ${3 + i * 0.3}s ease-in-out ${i * 0.2}s infinite` }}
+                    >
+                      {e}
+                    </span>
+                  ))}
+                </div>
+
+                {/* CTA button */}
+                <button
+                  id="start-btn"
+                  onClick={() => { setStage('quiz'); setStep(0); }}
+                  className="animate-fadeInUp w-full py-4 rounded-2xl text-white font-bold text-lg
+                    bg-gradient-to-r from-orange-400 to-amber-400
+                    hover:from-orange-500 hover:to-amber-500
+                    active:scale-[0.98] transition-all duration-200
+                    shadow-lg shadow-orange-300/50 hover:shadow-xl hover:shadow-orange-300/60
+                    hover:-translate-y-0.5"
+                  style={{ animationDelay: '0.6s' }}
+                >
+                  開始測驗 →
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // ==================== QUIZ PAGE ====================
+      if (stage === 'quiz') {
+        const currentQ = QUESTIONS[step];
+        const dimensionLabel = currentQ.dimension === 'EI' ? '外向 / 內向' 
+          : currentQ.dimension === 'TF' ? '理性 / 感性' 
+          : '計畫 / 隨性';
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 flex items-center justify-center p-4">
+            <div className="w-full max-w-md">
+              <div className="glass-strong rounded-3xl shadow-xl shadow-orange-200/50 p-6 relative overflow-hidden">
+                
+                {/* Progress bar */}
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-stone-500">
+                      第 {step + 1} / {QUESTIONS.length} 題
+                    </span>
+                    <span className="text-sm font-bold text-orange-500">
+                      {Math.round(progress)}%
+                    </span>
+                  </div>
+                  <div className="w-full h-2.5 bg-orange-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full rounded-full progress-bar-fill"
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </div>
+                  <div className="mt-1.5 text-right">
+                    <span className="text-xs text-stone-400 bg-orange-50 px-2 py-0.5 rounded-full">
+                      {dimensionLabel}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Question card with animation */}
+                <div 
+                  key={step}
+                  className={slideDirection === 'in' ? 'animate-slideInRight' : 'animate-slideOutLeft'}
+                >
+                  <div className="text-center mb-4">
+                    <span className="text-5xl inline-block animate-pulse-soft">{currentQ.emoji}</span>
+                  </div>
+
+                  <h2 className="text-lg font-bold text-stone-800 text-center mb-6 leading-relaxed">
+                    {currentQ.question}
+                  </h2>
+
+                  <div className="space-y-3">
+                    {currentQ.options.map((opt, idx) => (
+                      <button
+                        key={idx}
+                        id={`option-${step}-${idx}`}
+                        onClick={() => handleOptionClick(opt.value)}
+                        disabled={transitioning}
+                        className="option-btn w-full text-left p-4 rounded-2xl
+                          glass border border-white/50
+                          text-stone-700 font-medium leading-relaxed
+                          hover:bg-white/80 hover:border-orange-200
+                          disabled:opacity-50 disabled:cursor-not-allowed
+                          active:bg-orange-50"
+                      >
+                        <span className="inline-flex items-center gap-3">
+                          <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-amber-400 
+                            text-white text-sm font-bold flex items-center justify-center shadow-sm">
+                            {String.fromCharCode(65 + idx)}
+                          </span>
+                          <span>{opt.text}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // ==================== RESULT PAGE ====================
+      if (stage === 'result' && resultKey) {
+        const persona = PERSONAS[resultKey];
+        if (!persona) return null;
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 flex items-center justify-center p-4">
+            <div className="w-full max-w-md">
+              <div className="glass-strong rounded-3xl shadow-xl shadow-orange-200/50 p-6 relative overflow-hidden">
+                
+                {/* Label */}
+                <div className="text-center mb-4 animate-fadeInUp">
+                  <span className="text-sm font-medium text-orange-400 tracking-widest">
+                    你的靈魂創業人物是
+                  </span>
+                </div>
+
+                {/* Character image */}
+                <div className="relative flex justify-center mb-4 animate-bounceIn">
+                  <div className="result-glow animate-breathe" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}></div>
+                  <img 
+                    src={persona.image} 
+                    alt={persona.name}
+                    className="w-52 h-52 object-contain relative z-10 drop-shadow-2xl"
+                  />
+                </div>
+
+                {/* Emoji + Name */}
+                <div className="text-center mb-4 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+                  <span className="text-4xl mb-2 inline-block">{persona.emoji}</span>
+                  <h2 className="text-2xl font-black text-stone-800">{persona.name}</h2>
+                  <span className="text-xs text-stone-400">({resultKey})</span>
+                </div>
+
+                {/* Tags */}
+                <div className="flex justify-center gap-2 mb-6 flex-wrap animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
+                  {persona.tags.map((tag, i) => (
+                    <span 
+                      key={i}
+                      className="px-3 py-1 rounded-full text-sm font-medium
+                        bg-gradient-to-r from-orange-100 to-amber-100 
+                        text-orange-600 border border-orange-200/50"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Strength */}
+                <div className="mb-4 p-4 rounded-2xl glass border border-white/50 animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
+                  <h3 className="text-sm font-bold text-orange-500 mb-2 flex items-center gap-1">
+                    💪 性格優勢
+                  </h3>
+                  <p className="text-sm text-stone-600 leading-relaxed">{persona.strength}</p>
+                </div>
+
+                {/* Social */}
+                <div className="mb-6 p-4 rounded-2xl glass border border-white/50 animate-fadeInUp" style={{ animationDelay: '0.5s' }}>
+                  <h3 className="text-sm font-bold text-orange-500 mb-2 flex items-center gap-1">
+                    🤝 社交特質
+                  </h3>
+                  <p className="text-sm text-stone-600 leading-relaxed">{persona.social}</p>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-3 animate-fadeInUp" style={{ animationDelay: '0.6s' }}>
+                  <button
+                    id="restart-btn"
+                    onClick={resetQuiz}
+                    className="flex-1 py-3.5 rounded-2xl font-bold text-stone-500
+                      glass border border-stone-200/50
+                      hover:bg-white/80 hover:-translate-y-0.5
+                      active:scale-[0.98] transition-all duration-200"
+                  >
+                    🔄 重新測驗
+                  </button>
+                  <button
+                    id="share-btn"
+                    onClick={handleShare}
+                    className="flex-1 py-3.5 rounded-2xl font-bold text-white
+                      bg-gradient-to-r from-orange-400 to-amber-400
+                      hover:from-orange-500 hover:to-amber-500
+                      hover:-translate-y-0.5 active:scale-[0.98]
+                      transition-all duration-200
+                      shadow-lg shadow-orange-300/50"
+                  >
+                    {copied ? '已複製網址 ✓' : '📤 分享給朋友'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return null;
+    }
+
+    // Mount
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<FounderLifeQuiz />);
+  </script>
+</body>
+</html>
